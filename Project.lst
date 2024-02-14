@@ -1,0 +1,784 @@
+MPASM  5.51                       PROJECT.ASM   1-2-2024  22:18:08         PAGE  1
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00001 #include "p16f877a.inc"
+                      00001         LIST
+                      00002 
+                      00003 ;==========================================================================
+                      00004 ;  MPASM PIC16F877A processor include
+                      00005 ; 
+                      00006 ;  (c) Copyright 1999-2013 Microchip Technology, All rights reserved
+                      00007 ;==========================================================================
+                      00008 
+                      00566         LIST
+                      00002 ;NOTES:
+                      00003 ;This project was visualized as a 2D project.
+                      00004 ;The left sensor as back sensor.
+                      00005 ;The right sensor as front sensor.
+                      00006 ;The left(back) sensor will go first & calculate the distance, then the right(front) sensor will go and 
+                            do the same.
+                      00007 ;Compare the distances & move the motor
+                      00008 
+                      00009 ;References:
+                      00010 ;Study the value of the capacitors: https://forum.arduino.cc/t/capacitors-for-a-crystal/330184
+                      00011 
+                      00012         cblock 0x20
+  00000020            00013 counter, RB1_FLAG, RB2_FLAG, workingTemp, statusTemp, right_distance, left_distance, T1_HIGH
+  00000028            00014 T1_LOW, counter_left, counter_right, light8LED, delay_counter
+  0000002D            00015 counter_last_two, distance, distance_temp, brake_flag
+                      00016         endc
+0000                  00017         org 0x00        
+0000   2805           00018         goto MAIN
+0004                  00019         org 0x04
+0004   2858           00020         goto ISR
+0005                  00021 MAIN
+0005   3098           00022         movlw b'10011000' ;Clear INTF & RBIF, and enable Global Interrupt Controller, External Interrupt
+                            , and RB Port Change Interrupt.
+0006   008B           00023         movwf INTCON
+                      00024 
+0007   1683           00025         bsf STATUS, RP0 ;Select Bank1
+0008   3031           00026         movlw 0x31 ;0011 0001
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+0009   0086           00027         movwf TRISB
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+000A   0187           00028         clrf TRISC ;Make all C ports output
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+000B   0188           00029         clrf TRISD ;Make all D ports output
+000C   1283           00030         bcf STATUS, RP0 ;Select Bank0
+                      00031 
+000D   0186           00032         clrf PORTB
+000E   0187           00033         clrf PORTC
+000F   0188           00034         clrf PORTD
+                      00035 
+0010                  00036 Program_Loop
+0010   0183           00037         clrf STATUS
+0011   3008           00038         movlw d'8'
+0012   00AB           00039         movwf light8LED ;light8LED = 8 - Maximum LED's that PORTC can fit.
+MPASM  5.51                       PROJECT.ASM   1-2-2024  22:18:08         PAGE  2
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+0013   3002           00040         movlw d'2'
+0014   00A9           00041         movwf counter_left ;Counter for left sensor to ensure entering twice to the interrupt.
+0015   00AA           00042         movwf counter_right     ;Counter for right sensor to ensure entering twice to the interrupt.
+                      00043 
+0016   01A0           00044         clrf counter
+0017   01AD           00045         clrf counter_last_two
+                      00046         
+0018   1021           00047         bcf RB1_FLAG, 0 ;Flag for the left sensor.
+0019   1022           00048         bcf RB2_FLAG, 0 ;Flag for the right sensor.
+                      00049 
+001A                  00050 left_trigger
+001A   1486           00051         bsf PORTB, RB1 ;Set left trigger HIGH.
+001B   2053           00052         call delay_us ;Set the trigger bit for 10us (delay).
+001C   1086           00053         bcf PORTB, RB1 ;Set left trigger LOW.
+                      00054 
+001D   1421           00055         bsf RB1_FLAG, 0
+001E                  00056 leftLoop
+001E   1821           00057         btfsc RB1_FLAG, 0
+001F   281E           00058         goto leftLoop
+                      00059 
+0020                  00060 right_trigger
+0020   1506           00061         bsf PORTB, RB2 ;Set right trigger HIGH.
+0021   2053           00062         call delay_us ;Set the trigger bit for 10us (delay).
+0022   1106           00063         bcf PORTB, RB2 ;Set right trigger LOW.
+                      00064 
+0023   1422           00065         bsf RB2_FLAG, 0
+0024                  00066 rightLoop 
+0024   1822           00067         btfsc RB2_FLAG, 0
+0025   2824           00068         goto rightLoop
+                      00069 
+0026                  00070 compare_distances
+0026   0825           00071         movf right_distance, W
+0027   0226           00072         subwf left_distance, W ;W = left_distance - right_distance
+0028   1903           00073         btfsc STATUS, Z ;Testing if left_distance = right_distance
+0029   2837           00074         goto center_equal
+002A   1C03           00075         btfss STATUS, C
+002B   282D           00076         goto move_right ;Testing if left_distance < right_distance
+002C   2832           00077         goto move_left ;Testing if left_distance > right_distance
+                      00078 
+002D                  00079 move_right
+002D   0825           00080         movf right_distance, W
+002E   00AF           00081         movwf distance_temp ;Holds the value of the right_distance to divide it by 10.
+002F   203B           00082         call divide_by10
+                      00083 
+                      00084         ; Turn on the motor
+0030   1708           00085         bsf PORTD ,RD6 ;Set RD6 as high to move right.
+                      00086 
+0031   2810           00087         goto Program_Loop
+0032                  00088 move_left
+0032   0826           00089         movf left_distance, W
+0033   00AF           00090         movwf distance_temp ;Holds the value of the left_distance to divide it by 10.
+0034   203B           00091         call divide_by10
+                      00092 
+MPASM  5.51                       PROJECT.ASM   1-2-2024  22:18:08         PAGE  3
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00093         ; Turn on the motor
+0035   1788           00094         bsf PORTD, RD7 ;Set RD7 as high to move left.
+                      00095 
+0036   2810           00096         goto Program_Loop
+0037                  00097 center_equal
+0037   3005           00098         movlw d'5'
+0038   209D           00099         call LED_Lookup
+0039   0087           00100         movwf PORTC
+                      00101 
+                      00102         ;PORTD initially is cleared, so we do not need to clear the pin's again to stop the car.
+003A   2810           00103         goto Program_Loop
+                      00104 
+                      00105 ;Functions
+003B                  00106 divide_by10
+003B   300A           00107         movlw d'10'
+003C   02AF           00108         subwf distance_temp, F ;distance_temp = distance_temp - W(10)
+003D   1803           00109         btfsc STATUS, C ;Testing if distance_temp > 10
+003E   0AA0           00110         incf counter, F ;Counting number of 10's in distance_temp, to know which LED's to turn ON.
+003F   1803           00111         btfsc STATUS, C
+0040   283B           00112         goto divide_by10
+                      00113         
+0041   0A20           00114         incf counter, W
+0042   02AB           00115         subwf light8LED, F
+                      00116 
+0043   1903           00117         btfsc STATUS, Z
+0044   2848           00118         goto positive_zero_case ;If light8LED - counter = 0
+0045   1803           00119         btfsc STATUS, C
+0046   2848           00120         goto positive_zero_case ;If light8LED >= counter
+0047   284B           00121         goto negative_case ;If negative (counter > light8LED).
+                      00122 
+0048                  00123 positive_zero_case
+0048   209D           00124         call LED_Lookup
+0049   0087           00125         movwf PORTC
+004A   0008           00126         return
+                      00127 
+004B                  00128 negative_case
+004B   3008           00129         movlw d'8'
+004C   209D           00130         call LED_Lookup
+004D   0087           00131         movwf PORTC
+004E   3008           00132         movlw d'8'
+004F                  00133 last_two
+004F   0220           00134         subwf counter, W
+0050   20A7           00135         call LED_Lookup_last2
+0051   0088           00136         movwf PORTD
+0052   0008           00137         return
+                      00138 
+0053                  00139 delay_us
+0053   300A           00140         movlw d'10'
+0054   00AC           00141         movwf delay_counter
+0055                  00142 delay
+0055   0BAC           00143         decfsz delay_counter, F
+0056   2855           00144         goto delay
+0057   0008           00145         return
+MPASM  5.51                       PROJECT.ASM   1-2-2024  22:18:08         PAGE  4
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00146 
+                      00147 ;Multiple interupt
+0058                  00148 ISR
+                      00149         ;Saving.
+0058   00A3           00150         movwf workingTemp ;save the w value
+0059   0E03           00151         swapf STATUS, W ;put status in w
+005A   00A4           00152         movwf statusTemp ;save the status
+                      00153 
+                      00154         ;body - Testing which interrupt.
+005B   188B           00155         btfsc INTCON, INTF
+005C   2863           00156         goto ISR_EXTERNAL_BREAK
+005D   180B           00157         btfsc INTCON, RBIF
+005E   206E           00158         call ISR_ECHO   
+                      00159 
+                      00160         ;Retreiving.
+005F   0823           00161         movf workingTemp, W ;retreive the w value
+0060   0E24           00162         swapf statusTemp, W 
+0061   0083           00163         movwf STATUS ;retrieve the STATUS value
+                      00164 
+0062   0009           00165         retfie ;Re-make GIE one
+                      00166 
+0063                  00167 ISR_EXTERNAL_BREAK
+0063   1010           00168         bcf T1CON, TMR1ON ;Stop the timer.
+                      00169         
+0064                  00170 brake_loop
+0064   0806           00171         movf PORTB, W
+0065   3901           00172         andlw 0x01 ;Reading the RB0 status.
+0066   00B0           00173         movwf brake_flag
+0067   1C30           00174         btfss brake_flag, 0
+0068   286B           00175         goto continue_the_process
+0069   0188           00176         clrf PORTD ;If the brake button is pressed.
+006A   2864           00177         goto brake_loop
+                      00178 
+006B                  00179 continue_the_process
+006B   108B           00180         bcf INTCON, INTF ;Clearing the flag (INTF).
+006C   178B           00181         bsf INTCON, GIE
+006D   2810           00182         goto Program_Loop
+                      00183 
+006E                  00184 ISR_ECHO
+006E   1821           00185         btfsc RB1_FLAG, 0
+006F   2074           00186         call left_sensor_echo
+0070   1822           00187         btfsc RB2_FLAG, 0
+0071   2081           00188         call right_sensor_echo
+0072   100B           00189         bcf INTCON, RBIF ;Clearing the flag (RBIF).
+0073   0008           00190         return
+0074                  00191 left_sensor_echo
+0074   1410           00192         bsf T1CON, TMR1ON ;Start TIMER1
+0075   1086           00193         bcf PORTB, RB1 ;Set left trigger LOW
+                      00194 
+Message[305]: Using default destination of 1 (file).
+0076   0BA9           00195         decfsz counter_left
+0077   0008           00196         return
+                      00197         
+MPASM  5.51                       PROJECT.ASM   1-2-2024  22:18:08         PAGE  5
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+0078   1021           00198         bcf RB1_FLAG, 0
+0079   1010           00199         bcf T1CON, TMR1ON ;Stop TIMER1
+007A   208E           00200         call calculate_distance ;Calculate the distance.
+                      00201 
+007B   082E           00202         movf distance, W
+007C   00A6           00203         movwf left_distance
+                      00204 
+007D   01AE           00205         clrf distance
+007E   018E           00206         clrf TMR1L ;Clearing TMR1L
+007F   018F           00207         clrf TMR1H ;Clearing TMR1H
+                      00208 
+0080   0008           00209         return
+                      00210 
+0081                  00211 right_sensor_echo
+0081   1410           00212         bsf T1CON, TMR1ON ;Start TIMER1
+0082   1106           00213         bcf PORTB, RB2 ;Turn off the right trigger.
+                      00214 
+Message[305]: Using default destination of 1 (file).
+0083   0BAA           00215         decfsz counter_right
+0084   0008           00216         return
+                      00217 
+0085   1022           00218         bcf RB2_FLAG, 0
+0086   1010           00219         bcf T1CON, TMR1ON ;Stop TIMER1
+0087   208E           00220         call calculate_distance
+                      00221 
+0088   082E           00222         movf distance, W
+0089   00A5           00223         movwf right_distance
+                      00224 
+008A   01AE           00225         clrf distance
+                      00226 
+008B   018E           00227         clrf TMR1L ;Clearing TMR1L
+008C   018F           00228         clrf TMR1H ;Clearing TMR1H      
+                      00229         
+008D   0008           00230         return
+                      00231 
+008E                  00232 calculate_distance
+008E   2092           00233         call divideLow
+                      00234 
+008F   3004           00235         movlw d'4'
+0090   07AE           00236         addwf distance, F ;Add 4 to the distance for the last round of TMR1L.
+                      00237 
+0091   0008           00238         return
+0092                  00239 divideLow
+0092   303B           00240         movlw d'59' ;RoundUp(2 / 34x10^(-3))
+0093   028E           00241         subwf TMR1L, F
+0094   0AAE           00242         incf distance, F
+0095   1803           00243         btfsc STATUS, C
+0096   2892           00244         goto divideLow
+0097   2898           00245         goto divideHigh
+0098                  00246 divideHigh
+0098   3001           00247         movlw d'1'
+0099   028F           00248         subwf TMR1H, F ;TMR1H = TMR1H - 1
+009A   1903           00249         btfsc STATUS, Z
+MPASM  5.51                       PROJECT.ASM   1-2-2024  22:18:08         PAGE  6
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+009B   0008           00250         return
+009C   2892           00251         goto divideLow
+                      00252 
+                      00253 ;LED's Lookup tables
+                      00254 ;Lookup table for PORTC (counter <= light8LED)
+009D                  00255 LED_Lookup
+009D   0782           00256         addwf PCL, F
+009E   3400           00257         retlw b'00000000' ;0 LED (PORTC pin's are off).
+009F   3480           00258         retlw b'10000000' ;1 LED (RC7 ON).
+00A0   34C0           00259         retlw b'11000000' ;2 LED (RC7:RC6 ON).
+00A1   34E0           00260         retlw b'11100000' ;3 LED (RC7:RC5 ON).
+00A2   34F0           00261         retlw b'11110000' ;4 LED (RC7:RC4 ON).
+00A3   34F8           00262         retlw b'11111000' ;5 LED (RC7:RC3 ON).
+00A4   34FC           00263         retlw b'11111100' ;6 LED (RC7:RC2 ON).
+00A5   34FE           00264         retlw b'11111110' ;7 LED (RC7:RC1 ON).
+00A6   34FF           00265         retlw b'11111111' ;8 LED (RC7:RC0 ON).
+                      00266 ;Lookup table for PORTD (counter > light8LED)
+00A7                  00267 LED_Lookup_last2
+00A7   0782           00268         addwf PCL, F
+00A8   3402           00269         retlw b'00000010' ;9 LED (RD0 ON)
+00A9   3402           00270         retlw b'00000010' ;9 LED (RD0 ON)
+00AA   3403           00271         retlw b'00000011' ;10 LED (RD1:RD0 ON)
+                      00272 
+                      00273         END
+MPASM  5.51                       PROJECT.ASM   1-2-2024  22:18:08         PAGE  7
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+ACKDT                             00000005
+ACKEN                             00000004
+ACKSTAT                           00000006
+ADCON0                            0000001F
+ADCON1                            0000009F
+ADCS0                             00000006
+ADCS1                             00000007
+ADCS2                             00000006
+ADDEN                             00000003
+ADFM                              00000007
+ADIE                              00000006
+ADIF                              00000006
+ADON                              00000000
+ADRESH                            0000001E
+ADRESL                            0000009E
+BCLIE                             00000003
+BCLIF                             00000003
+BF                                00000000
+BRGH                              00000002
+C                                 00000000
+C1INV                             00000004
+C1OUT                             00000006
+C2INV                             00000005
+C2OUT                             00000007
+CCP1CON                           00000017
+CCP1IE                            00000002
+CCP1IF                            00000002
+CCP1M0                            00000000
+CCP1M1                            00000001
+CCP1M2                            00000002
+CCP1M3                            00000003
+CCP1X                             00000005
+CCP1Y                             00000004
+CCP2CON                           0000001D
+CCP2IE                            00000000
+CCP2IF                            00000000
+CCP2M0                            00000000
+CCP2M1                            00000001
+CCP2M2                            00000002
+CCP2M3                            00000003
+CCP2X                             00000005
+CCP2Y                             00000004
+CCPR1                             00000015
+CCPR1H                            00000016
+CCPR1L                            00000015
+CCPR2                             0000001B
+CCPR2H                            0000001C
+CCPR2L                            0000001B
+CHS0                              00000003
+CHS1                              00000004
+CHS2                              00000005
+CIS                               00000003
+CKE                               00000006
+MPASM  5.51                       PROJECT.ASM   1-2-2024  22:18:08         PAGE  8
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+CKP                               00000004
+CM0                               00000000
+CM1                               00000001
+CM2                               00000002
+CMCON                             0000009C
+CMIE                              00000006
+CMIF                              00000006
+CREN                              00000004
+CSRC                              00000007
+CVR0                              00000000
+CVR1                              00000001
+CVR2                              00000002
+CVR3                              00000003
+CVRCON                            0000009D
+CVREN                             00000007
+CVROE                             00000006
+CVRR                              00000005
+D                                 00000005
+DATA_ADDRESS                      00000005
+DC                                00000001
+D_A                               00000005
+D_NOT_A                           00000005
+EEADR                             0000010D
+EEADRH                            0000010F
+EECON1                            0000018C
+EECON2                            0000018D
+EEDATA                            0000010C
+EEDATH                            0000010E
+EEIE                              00000004
+EEIF                              00000004
+EEPGD                             00000007
+F                                 00000001
+FERR                              00000002
+FSR                               00000004
+GCEN                              00000007
+GIE                               00000007
+GO                                00000002
+GO_DONE                           00000002
+GO_NOT_DONE                       00000002
+I2C_DATA                          00000005
+I2C_READ                          00000002
+I2C_START                         00000003
+I2C_STOP                          00000004
+IBF                               00000007
+IBOV                              00000005
+INDF                              00000000
+INTCON                            0000000B
+INTE                              00000004
+INTEDG                            00000006
+INTF                              00000001
+IRP                               00000007
+ISR                               00000058
+ISR_ECHO                          0000006E
+MPASM  5.51                       PROJECT.ASM   1-2-2024  22:18:08         PAGE  9
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+ISR_EXTERNAL_BREAK                00000063
+LED_Lookup                        0000009D
+LED_Lookup_last2                  000000A7
+MAIN                              00000005
+NOT_A                             00000005
+NOT_ADDRESS                       00000005
+NOT_BO                            00000000
+NOT_BOR                           00000000
+NOT_DONE                          00000002
+NOT_PD                            00000003
+NOT_POR                           00000001
+NOT_RBPU                          00000007
+NOT_RC8                           00000006
+NOT_T1SYNC                        00000002
+NOT_TO                            00000004
+NOT_TX8                           00000006
+NOT_W                             00000002
+NOT_WRITE                         00000002
+OBF                               00000006
+OERR                              00000001
+OPTION_REG                        00000081
+P                                 00000004
+PCFG0                             00000000
+PCFG1                             00000001
+PCFG2                             00000002
+PCFG3                             00000003
+PCL                               00000002
+PCLATH                            0000000A
+PCON                              0000008E
+PEIE                              00000006
+PEN                               00000002
+PIE1                              0000008C
+PIE2                              0000008D
+PIR1                              0000000C
+PIR2                              0000000D
+PORTA                             00000005
+PORTB                             00000006
+PORTC                             00000007
+PORTD                             00000008
+PORTE                             00000009
+PR2                               00000092
+PS0                               00000000
+PS1                               00000001
+PS2                               00000002
+PSA                               00000003
+PSPIE                             00000007
+PSPIF                             00000007
+PSPMODE                           00000004
+Program_Loop                      00000010
+R                                 00000002
+RA0                               00000000
+RA1                               00000001
+RA2                               00000002
+MPASM  5.51                       PROJECT.ASM   1-2-2024  22:18:08         PAGE 10
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+RA3                               00000003
+RA4                               00000004
+RA5                               00000005
+RB0                               00000000
+RB1                               00000001
+RB1_FLAG                          00000021
+RB2                               00000002
+RB2_FLAG                          00000022
+RB3                               00000003
+RB4                               00000004
+RB5                               00000005
+RB6                               00000006
+RB7                               00000007
+RBIE                              00000003
+RBIF                              00000000
+RC0                               00000000
+RC1                               00000001
+RC2                               00000002
+RC3                               00000003
+RC4                               00000004
+RC5                               00000005
+RC6                               00000006
+RC7                               00000007
+RC8_9                             00000006
+RC9                               00000006
+RCD8                              00000000
+RCEN                              00000003
+RCIE                              00000005
+RCIF                              00000005
+RCREG                             0000001A
+RCSTA                             00000018
+RD                                00000000
+RD0                               00000000
+RD1                               00000001
+RD2                               00000002
+RD3                               00000003
+RD4                               00000004
+RD5                               00000005
+RD6                               00000006
+RD7                               00000007
+RE0                               00000000
+RE1                               00000001
+RE2                               00000002
+READ_WRITE                        00000002
+RP0                               00000005
+RP1                               00000006
+RSEN                              00000001
+RX9                               00000006
+RX9D                              00000000
+R_NOT_W                           00000002
+R_W                               00000002
+S                                 00000003
+SEN                               00000000
+MPASM  5.51                       PROJECT.ASM   1-2-2024  22:18:08         PAGE 11
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+SMP                               00000007
+SPBRG                             00000099
+SPEN                              00000007
+SREN                              00000005
+SSPADD                            00000093
+SSPBUF                            00000013
+SSPCON                            00000014
+SSPCON2                           00000091
+SSPEN                             00000005
+SSPIE                             00000003
+SSPIF                             00000003
+SSPM0                             00000000
+SSPM1                             00000001
+SSPM2                             00000002
+SSPM3                             00000003
+SSPOV                             00000006
+SSPSTAT                           00000094
+STATUS                            00000003
+SYNC                              00000004
+T0CS                              00000005
+T0IE                              00000005
+T0IF                              00000002
+T0SE                              00000004
+T1CKPS0                           00000004
+T1CKPS1                           00000005
+T1CON                             00000010
+T1INSYNC                          00000002
+T1OSCEN                           00000003
+T1SYNC                            00000002
+T1_HIGH                           00000027
+T1_LOW                            00000028
+T2CKPS0                           00000000
+T2CKPS1                           00000001
+T2CON                             00000012
+TMR0                              00000001
+TMR0IE                            00000005
+TMR0IF                            00000002
+TMR1                              0000000E
+TMR1CS                            00000001
+TMR1H                             0000000F
+TMR1IE                            00000000
+TMR1IF                            00000000
+TMR1L                             0000000E
+TMR1ON                            00000000
+TMR2                              00000011
+TMR2IE                            00000001
+TMR2IF                            00000001
+TMR2ON                            00000002
+TOUTPS0                           00000003
+TOUTPS1                           00000004
+TOUTPS2                           00000005
+TOUTPS3                           00000006
+TRISA                             00000085
+MPASM  5.51                       PROJECT.ASM   1-2-2024  22:18:08         PAGE 12
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+TRISA0                            00000000
+TRISA1                            00000001
+TRISA2                            00000002
+TRISA3                            00000003
+TRISA4                            00000004
+TRISA5                            00000005
+TRISB                             00000086
+TRISB0                            00000000
+TRISB1                            00000001
+TRISB2                            00000002
+TRISB3                            00000003
+TRISB4                            00000004
+TRISB5                            00000005
+TRISB6                            00000006
+TRISB7                            00000007
+TRISC                             00000087
+TRISC0                            00000000
+TRISC1                            00000001
+TRISC2                            00000002
+TRISC3                            00000003
+TRISC4                            00000004
+TRISC5                            00000005
+TRISC6                            00000006
+TRISC7                            00000007
+TRISD                             00000088
+TRISD0                            00000000
+TRISD1                            00000001
+TRISD2                            00000002
+TRISD3                            00000003
+TRISD4                            00000004
+TRISD5                            00000005
+TRISD6                            00000006
+TRISD7                            00000007
+TRISE                             00000089
+TRISE0                            00000000
+TRISE1                            00000001
+TRISE2                            00000002
+TRMT                              00000001
+TX8_9                             00000006
+TX9                               00000006
+TX9D                              00000000
+TXD8                              00000000
+TXEN                              00000005
+TXIE                              00000004
+TXIF                              00000004
+TXREG                             00000019
+TXSTA                             00000098
+UA                                00000001
+W                                 00000000
+WCOL                              00000007
+WR                                00000001
+WREN                              00000002
+WRERR                             00000003
+MPASM  5.51                       PROJECT.ASM   1-2-2024  22:18:08         PAGE 13
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+Z                                 00000002
+_BODEN_OFF                        00003FBF
+_BODEN_ON                         00003FFF
+_BOREN_OFF                        00003FBF
+_BOREN_ON                         00003FFF
+_CONFIG                           00002007
+_CPD_OFF                          00003FFF
+_CPD_ON                           00003EFF
+_CP_ALL                           00001FFF
+_CP_OFF                           00003FFF
+_CP_ON                            00001FFF
+_DEBUG_OFF                        00003FFF
+_DEBUG_ON                         000037FF
+_DEVID1                           00002006
+_FOSC_EXTRC                       00003FFF
+_FOSC_HS                          00003FFE
+_FOSC_LP                          00003FFC
+_FOSC_XT                          00003FFD
+_HS_OSC                           00003FFE
+_IDLOC0                           00002000
+_IDLOC1                           00002001
+_IDLOC2                           00002002
+_IDLOC3                           00002003
+_LP_OSC                           00003FFC
+_LVP_OFF                          00003F7F
+_LVP_ON                           00003FFF
+_PWRTE_OFF                        00003FFF
+_PWRTE_ON                         00003FF7
+_RC_OSC                           00003FFF
+_WDTE_OFF                         00003FFB
+_WDTE_ON                          00003FFF
+_WDT_OFF                          00003FFB
+_WDT_ON                           00003FFF
+_WRT_1FOURTH                      00003BFF
+_WRT_256                          00003DFF
+_WRT_HALF                         000039FF
+_WRT_OFF                          00003FFF
+_XT_OSC                           00003FFD
+__16F877A                         00000001
+__DEBUG                           1
+brake_flag                        00000030
+brake_loop                        00000064
+calculate_distance                0000008E
+center_equal                      00000037
+compare_distances                 00000026
+continue_the_process              0000006B
+counter                           00000020
+counter_last_two                  0000002D
+counter_left                      00000029
+counter_right                     0000002A
+delay                             00000055
+delay_counter                     0000002C
+delay_us                          00000053
+MPASM  5.51                       PROJECT.ASM   1-2-2024  22:18:08         PAGE 14
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+distance                          0000002E
+distance_temp                     0000002F
+divideHigh                        00000098
+divideLow                         00000092
+divide_by10                       0000003B
+last_two                          0000004F
+leftLoop                          0000001E
+left_distance                     00000026
+left_sensor_echo                  00000074
+left_trigger                      0000001A
+light8LED                         0000002B
+move_left                         00000032
+move_right                        0000002D
+negative_case                     0000004B
+positive_zero_case                00000048
+rightLoop                         00000024
+right_distance                    00000025
+right_sensor_echo                 00000081
+right_trigger                     00000020
+statusTemp                        00000024
+workingTemp                       00000023
+
+
+MEMORY USAGE MAP ('X' = Used,  '-' = Unused)
+
+0000 : X---XXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX
+0040 : XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX
+0080 : XXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXX XXXXXXXXXXX----- ----------------
+
+All other memory blocks unused.
+
+Program Memory Words Used:   168
+Program Memory Words Free:  8024
+
+
+Errors   :     0
+Warnings :     0 reported,     0 suppressed
+Messages :     5 reported,     0 suppressed
+
+

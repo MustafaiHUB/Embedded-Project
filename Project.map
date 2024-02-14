@@ -1,0 +1,88 @@
+MPLINK 4.49, Linker
+Linker Map File - Created Tue Jan 02 22:18:09 2024
+
+                                 Section Info
+                  Section       Type    Address   Location Size(Bytes)
+                ---------  ---------  ---------  ---------  ---------
+                   .org_0       code   0x000000    program   0x000000
+                   .org_1       code   0x000000    program   0x000002
+                   .org_2       code   0x000004    program   0x00014e
+
+
+
+                              Program Memory Usage 
+                               Start         End      
+                           ---------   ---------      
+                            0x000000    0x000000      
+                            0x000004    0x0000aa      
+            168 out of 8454 program addresses used, program memory utilization is 1%
+
+
+
+                              Symbols - Sorted by Name
+                     Name    Address   Location    Storage File                     
+                ---------  ---------  ---------  --------- ---------                
+                      ISR   0x000058    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+                 ISR_ECHO   0x00006e    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+       ISR_EXTERNAL_BREAK   0x000063    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+               LED_Lookup   0x00009d    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+         LED_Lookup_last2   0x0000a7    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+                     MAIN   0x000005    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+             Program_Loop   0x000010    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+               brake_loop   0x000064    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+       calculate_distance   0x00008e    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+             center_equal   0x000037    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+        compare_distances   0x000026    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+     continue_the_process   0x00006b    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+                    delay   0x000055    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+                 delay_us   0x000053    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+               divideHigh   0x000098    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+                divideLow   0x000092    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+              divide_by10   0x00003b    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+                 last_two   0x00004f    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+                 leftLoop   0x00001e    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+         left_sensor_echo   0x000074    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+             left_trigger   0x00001a    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+                move_left   0x000032    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+               move_right   0x00002d    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+            negative_case   0x00004b    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+       positive_zero_case   0x000048    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+                rightLoop   0x000024    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+        right_sensor_echo   0x000081    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+            right_trigger   0x000020    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+
+
+
+                              Symbols - Sorted by Address
+                     Name    Address   Location    Storage File                     
+                ---------  ---------  ---------  --------- ---------                
+                     MAIN   0x000005    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+             Program_Loop   0x000010    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+             left_trigger   0x00001a    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+                 leftLoop   0x00001e    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+            right_trigger   0x000020    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+                rightLoop   0x000024    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+        compare_distances   0x000026    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+               move_right   0x00002d    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+                move_left   0x000032    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+             center_equal   0x000037    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+              divide_by10   0x00003b    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+       positive_zero_case   0x000048    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+            negative_case   0x00004b    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+                 last_two   0x00004f    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+                 delay_us   0x000053    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+                    delay   0x000055    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+                      ISR   0x000058    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+       ISR_EXTERNAL_BREAK   0x000063    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+               brake_loop   0x000064    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+     continue_the_process   0x00006b    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+                 ISR_ECHO   0x00006e    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+         left_sensor_echo   0x000074    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+        right_sensor_echo   0x000081    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+       calculate_distance   0x00008e    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+                divideLow   0x000092    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+               divideHigh   0x000098    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+               LED_Lookup   0x00009d    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+         LED_Lookup_last2   0x0000a7    program     static C:\Users\Abu Obeid\Desktop\Center_Pilots-Embedded_Project\Project.asm
+
+
